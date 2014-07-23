@@ -16,6 +16,12 @@
 			break;
 		}
 	}
+
+	function getPlayerContainer(p) {
+		return	p.getRenderingMode() === "html5"
+				? p.getContainer()
+				: p.getContainer().parentNode;
+	}
 		
 	function main(player, config, div) {
 		
@@ -31,7 +37,8 @@
 			onplay:					'off',
 			onpause:				'on',
 			oncomplete:				'on',
-			parentid:				null
+			parentid:				null,
+			dockiconUrl:			mydir + "lightsout_dock_out.png"
 		};
 	
 		function setup(e) {
@@ -69,8 +76,7 @@
 			_this.toggle = lights.toggle;
 					
 			if (config.dockicon === true && typeof player.addButton === "function") {
-				var lout_dock_out = mydir + "lightsout_dock_out.png";
-				player.addButton(lout_dock_out, 'Toggle Light', lights.toggle, 'lightsout');
+				player.addButton(config.dockiconUrl, 'Toggle Light', function(){ lights.toggle(player) }, 'lightsout');
 			}
 			
 			player.onIdle(stateHandler);
@@ -89,36 +95,32 @@
 		}
 
 		function zIndex(p, value) {
-			if (p.getRenderingMode() === "html5") {
-				p.getContainer().style.zIndex = value;
-			} else {
-				p.getContainer().parentNode.style.zIndex = value;
-			}
+			getPlayerContainer(p).style.zIndex = value;
 		}
 
 		function turnOn() {
 			player.pause(true);
-			lights.on();
+			lights.on(player);
 		}
 
 		function completeHandler(data) {
-			if (config.oncomplete == "off") lights.off();
-			else lights.on();
+			if (config.oncomplete == "off") lights.off(player)
+			else lights.on(player);
 		}
 		
 		function stateHandler(data) {
 			switch (player.getState()) {
 				case 'IDLE':
-					if (config.onidle == "off") lights.off();
-					else lights.on();
+					if (config.onidle == "off") lights.off(player);
+					else lights.on(player);
 					break;
 				case 'PLAYING':
-					if (config.onplay == "off") lights.off();
-					else lights.on();
+					if (config.onplay == "off") lights.off(player);
+					else lights.on(player);
 					break;
 				case 'PAUSED':
-					if (config.onpause == "off") lights.off();
-					else lights.on();
+					if (config.onpause == "off") lights.off(player);
+					else lights.on(player);
 					break;
 			}
 		}
@@ -153,8 +155,12 @@
 			_this.opacity = o;
         }
 		
-		this.off = function() {
+		this.off = function(player) {
 			if (typeof callback === "function") callback();
+			
+			if (player != null) 
+				getPlayerContainer(player).setAttribute('data-lights','off');
+				
 			_this.element.style.display = "block";
 			clearInterval(interval);
 			var t0 = new Date().getTime();
@@ -169,7 +175,10 @@
 			}, 1000 / 60);
 		};
 		
-		this.on = function() {
+		this.on = function(player) {
+			if (player != null)
+				getPlayerContainer(player).setAttribute('data-lights','on');
+				
 			clearInterval(interval);
 			var t0 = new Date().getTime();
 			var o0 = _this.opacity;
@@ -184,11 +193,11 @@
 			}, 1000 / 60);
 		};
 		
-		this.toggle = function() {
+		this.toggle = function(player) {
 			if (_this.opacity < 0.5) {
-				_this.off();
+				_this.off(player);
 			} else {
-				_this.on();
+				_this.on(player);
 			}
 		};
 	}
